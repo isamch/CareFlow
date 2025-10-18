@@ -1,5 +1,5 @@
-import authRouter from './authRouter';
-import userRouter from './userRouter';
+import authRouter from './authRouter.js';
+import userRouter from './userRouter.js';
 
 
 import express from 'express';
