@@ -1,27 +1,32 @@
+import Joi from 'joi'
 
-export const validate = (schema) => {
+export default (schema) => (req, res, next) => {
+  const requestSchema = Joi.object({
+    body: schema.body || Joi.object(),
+    params: schema.params || Joi.object(),
+    query: schema.query || Joi.object()
+  })
 
-  return (req, res, next) => {
-    
-    if (!req.body || Object.keys(req.body).length === 0) {
-      throw { message: "Request body is required", statusCode: 400 };
-    }
+  const dataToValidate = {
+    body: req.body,
+    params: req.params,
+    query: req.query
+  }
 
-    const { error } = schema.validate(req.body, { abortEarly: false });   // { abortEarly: false }); : stp in first error
+  const { error, value } = requestSchema.validate(dataToValidate, {
+    abortEarly: false,
+    allowUnknown: true,
+    stripUnknown: true
+  })
 
+  if (error) {
+    error.isJoi = true
+    return next(error)
+  }
 
-    if (error) {
-      const messages = {};
+  req.body = value.body
+  req.params = value.params
+  req.query = value.query
 
-      for (const err of error.details) {
-        messages[err.path[0]] = err.message;
-      }
-
-      throw { message: messages, statusCode: 400 };
-    }
-
-    next();
-
-  };
-
-};
+  next()
+}

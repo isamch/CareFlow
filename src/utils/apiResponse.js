@@ -1,28 +1,16 @@
-export const successResponse = (res, status = 200, data, message = "Success") => {
-  return res.status(status).json({
-    status: "success",
-    message,
-    data,
-  });
-};
-
-
-export const apiResponse = (res, status = "success", message = "", data = null, statusCode = 200) => {
+export const successResponse = (res, statusCode, message, data) => {
   return res.status(statusCode).json({
-    status,
+    status: 'success',
     message,
-    data,
-  });
-};
+    data
+  })
+}
 
-
-export const errorResponse = (res, error = null, message = null, statusCode = 500) => {
-
+export const errorResponse = (res, statusCode, message, details = null) => {
   return res.status(statusCode).json({
-    status: "error",
-    message: message || (error && error.message) || "Something went wrong",
-    stack: process.env.NODE_ENV === "production" ? null : (error && error.stack)
-
-  });
-
-};
+    status: 'error',
+    code: statusCode,
+    message,
+    ...(details && { details })
+  })
+}
