@@ -1,50 +1,35 @@
-import express from 'express';
-
-// import helpers :
-import * as viewHelpers from "./src/utils/viewHelpers.js";
-
-// import routes :
-import router from './src/routes/api/index.js';
-
-// import db:
-import connectDB from './src/config/db.js';
-
-// import middlewares:
-import errorHandler from './src/middleware/errorHandler.js';
-
-// others :
+import express from 'express'
+import cors from 'cors'
+import helmet from 'helmet'
+import morgan from 'morgan'
+import createError from 'http-errors'
+import mainRouter from './src/routes/router.js'
+import errorHandler from './src/middleware/errorHandler.js'
 import cookieParser from "cookie-parser";
-import cors from 'cors';
-import helmet from 'helmet';
+const app = express()
 
-
-const app = express(); // create instance app from express function factory
-
-// set view helpers :
-app.locals.helpers = viewHelpers;
-
-// middleware: parse JSON
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// cookies parser
+// Core Middleware
+app.use(cors())
+app.use(helmet())
+app.use(express.json())
+app.use(express.urlencoded({ extended: false }))
 app.use(cookieParser());
 
-// others :
-app.use(cors());
-app.use(helmet());
 
+// Logging
+if (process.env.NODE_ENV === 'development') {
+  app.use(morgan('dev'))
+}
 
-// connect db
-await connectDB();
+// Main Router
+app.use(mainRouter)
 
+// 404 Handler
+app.use((req, res, next) => {
+  next(createError.NotFound('The route you requested does not exist.'))
+})
 
-// API routes:
-app.use('/api', router);
+// Global Error Handler
+app.use(errorHandler)
 
-
-// finales middlewares:
-app.use(errorHandler);
-
-
-export default app;
+export default app
