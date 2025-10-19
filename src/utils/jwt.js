@@ -1,11 +1,31 @@
-import jwt from "jsonwebtoken";
+import jwt from 'jsonwebtoken'
 
-export const signToken = (payload, expiresIn = "1h") => {
-  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn });
-};
+export const generateAccessToken = (payload) => {
+  return jwt.sign(payload, process.env.JWT_ACCESS_SECRET, {
+    expiresIn: process.env.JWT_ACCESS_EXPIRES_IN
+  })
+}
 
+export const generateRefreshToken = (payload) => {
+  return jwt.sign(payload, process.env.JWT_REFRESH_SECRET, {
+    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN
+  })
+}
 
-export const verifyToken = (token) => {
-  return jwt.verify(token, process.env.JWT_SECRET);
-};
+export const verifyAccessToken = (token) => {
+  try {
+    return jwt.verify(token, process.env.JWT_ACCESS_SECRET)
+  } catch (error) {
+    return null
+  }
+}
 
+export const verifyRefreshToken = (token) => {
+  try {
+    return jwt.verify(token, process.env.JWT_REFRESH_SECRET)
+  } catch (error) {
+    return null
+  }
+}
+
+export const decode = jwt.decode
