@@ -1,4 +1,3 @@
-
 export function getPagination(query, defaultLimit = 10) {
   const page = parseInt(query.page) || 1;
   const limit = parseInt(query.limit) || defaultLimit;
@@ -6,3 +5,4 @@ export function getPagination(query, defaultLimit = 10) {
 
   return { page, limit, skip };
 }
+

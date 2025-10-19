@@ -1,46 +1,46 @@
-import { json } from "express";
-import { verifyToken } from "../utils/jwt.js";
+import { verifyAccessToken } from '../utils/jwt.js'
+import User from '../models/User.js'
+import { unauthorized, forbidden } from '../utils/ApiError.js'
+import asyncHandler from '../utils/asyncHandler.js'
 
-export const authMiddleware = (req, res, next) => {
 
-  
-  if (req.originalUrl === '/api/auth/logout') {
-    return next();
+export const protect = asyncHandler(async (req, res, next) => {
+  let token
+  const authHeader = req.headers.authorization
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.split(' ')[1]
   }
 
-
-
-  let token;
-
-  if (req.headers.client === "not-browser" && req.headers.authorization) {
-    token = req.headers.authorization;
-  } else if (req.cookies?.Authorization) {
-    token = req.cookies.Authorization;
+  if (!token && req.cookies && req.cookies.token) {
+    token = req.cookies.token
   }
-
-  // return res.json({
-  //   token: token
-  // });
-
 
   if (!token) {
-    throw { message: "Unauthorized: Token not found", statusCode: 403 };
+    throw unauthorized('Not authorized, no token')
   }
 
+  const payload = verifyAccessToken(token)
 
-  if (token.startsWith('Bearer ')) {
-    token = token.split(' ')[1];
+  if (!payload) {
+    throw unauthorized('Not authorized, token invalid')
   }
 
-  const jwtVerified = verifyToken(token);
+  const user = await User.findById(payload.id).select('-password')
 
-
-  if (!jwtVerified) {
-    throw { message: "Invalid or expired token", statusCode: 401 };
+  if (!user || user.status !== 'active') {
+    throw unauthorized('User not found or suspended')
   }
 
-  req.user = jwtVerified;
+  req.user = user
+  next()
+})
 
-  next();
-
-};
+export const authorize = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      throw forbidden(`User role '${req.user.role}' is not authorized to access this route`)
+    }
+    next()
+  }
+}
