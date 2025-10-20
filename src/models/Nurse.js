@@ -1,5 +1,6 @@
 import mongoose from 'mongoose'
 
+// ... (يمكن استيراد workingHourSchema إذا فصلناه في ملف)
 const workingHourSchema = new mongoose.Schema({
   dayOfWeek: {
     type: String,
@@ -11,22 +12,22 @@ const workingHourSchema = new mongoose.Schema({
   isAvailable: { type: Boolean, default: true }
 }, { _id: false })
 
-const doctorSchema = new mongoose.Schema({
+
+const nurseSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
     unique: true
   },
-
-  // doctor data
-  specialization: {
-    type: String,
-    required: true
-  },
-  assignedNurse: {
+  // nurse data
+  assignedDoctor: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Nurse'
+    ref: 'Doctor'
+  },
+  shift: {
+    type: String,
+    enum: ['day', 'night', 'rotating']
   },
   workingHours: [workingHourSchema]
 }, {
@@ -40,4 +41,4 @@ const doctorSchema = new mongoose.Schema({
   }
 })
 
-export default mongoose.model('Doctor', doctorSchema);
+export default mongoose.model('Nurse', nurseSchema);
