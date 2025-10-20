@@ -3,11 +3,11 @@ import Patient from "./../models/Patient.js";
 import PatientRecord from "./../models/PatientRecord.js";
 import Token from "./../models/Token.js";
 
-import { hashPassword, comparePassword } from "./../utils/hashing.js";
-import { generateOTP, generateCryptoToken } from "../utils/generateTokens.js";
+import { hashPassword, comparePassword, hmacHash } from "./../utils/hashing.js";
+import { generateCryptoToken } from "../utils/generateTokens.js";
 import { sendCookies, clearCookie } from "./utils/Cookies.js";
 
-import { generateAccessToken, generateRefreshToken, decode } from "./../utils/jwt.js";
+import { generateAccessToken, generateRefreshToken, decode, verifyRefreshToken } from "./../utils/jwt.js";
 import { successResponse } from "./../utils/apiResponse.js";
 import * as ApiError from "./../utils/ApiError.js";
 import asyncHandler from "./../utils/asyncHandler.js";
@@ -50,7 +50,7 @@ export const register = asyncHandler(async (req, res, next) => {
     userId: user._id
   })
 
-  
+
   // (Send Email Logic)
   const verificationUrl = `${req.protocol}://${req.get('host')}/api/auth/verify-email/${token}`;
   await sendEmail({
@@ -134,6 +134,33 @@ export const login = asyncHandler(async (req, res, next) => {
 
 
 
+export const refreshToken = asyncHandler(async (req, res, next) => {
+  const refreshToken = req.cookies.refreshToken;
+  if (!refreshToken) return next(ApiError.unauthorized('No refresh token provided'));
+
+  const existingToken = await Token.findOne({ token: refreshToken });
+  if (!existingToken) return next(ApiError.unauthorized('Invalid refresh token'));
+
+  let payload;
+  try {
+    payload = verifyRefreshToken(refreshToken);
+  } catch {
+    return next(ApiError.unauthorized('Invalid or expired refresh token'));
+  }
+
+  const newAccessToken = generateAccessToken(payload);
+
+  sendCookies(res, {
+    name: "Authorization",
+    value: newAccessToken,
+    options: { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "Strict", maxAge: 15*60*1000 }
+  });
+
+  return successResponse(res, 200, 'Access token refreshed', { accessToken: newAccessToken });
+});
+
+
+
 export const logout = asyncHandler(async (req, res, next) => {
   const userId = req.user?.id;
 
@@ -158,7 +185,9 @@ export const logout = asyncHandler(async (req, res, next) => {
 
 export const verifyEmail = asyncHandler(async (req, res, next) => {
   const { token } = req.params
-  const hashedToken = crypto.createHash('sha256').update(token).digest('hex')
+
+  const hashedToken = hmacHash(token);
+
   const user = await User.findOne({
     emailVerificationToken: hashedToken,
     emailVerificationExpires: { $gt: Date.now() }
@@ -170,6 +199,7 @@ export const verifyEmail = asyncHandler(async (req, res, next) => {
   user.emailVerificationToken = undefined
   user.emailVerificationExpires = undefined
   await user.save()
+
   return successResponse(res, 200, 'Email verified successfully.')
 })
 
@@ -177,82 +207,49 @@ export const verifyEmail = asyncHandler(async (req, res, next) => {
 
 
 
+export const forgotPassword = asyncHandler(async (req, res, next) => {
+  const { email } = req.body
+  const user = await User.findOne({ email })
+  if (!user) return next(ApiError.notFound('User with that email does not exist'))
+
+  const { token, hashedToken, expires } = generateCryptoToken()
+  user.passwordResetToken = hashedToken
+  user.passwordResetExpires = expires
+  await user.save()
+
+  // (Send Email Logic)
+  const resetUrl = `${req.protocol}://${req.get('host')}/api/v1/auth/reset-password/${token}`;
+  await sendEmail({
+    to: user.email,
+    subject: "Password Reset Request",
+    templateName: "resetPassword",
+    templateData: {
+      name: user.fullName,
+      link: resetUrl
+    }
+  });
+
+  return successResponse(res, 200, 'Password reset token sent to email.')
+})
 
 
 
 
+export const resetPassword = asyncHandler(async (req, res, next) => {
+  const { token } = req.params
+  const { password } = req.body
+  const hashedToken = hmacHash(token);
 
+  const user = await User.findOne({
+    passwordResetToken: hashedToken,
+    passwordResetExpires: { $gt: Date.now() }
+  })
+  if (!user) return next(ApiError.badRequest('Token is invalid or has expired'))
 
-// // email verify :
+  user.password = await hashPassword(password)
+  user.passwordResetToken = undefined
+  user.passwordResetExpires = undefined
+  await user.save()
+  return successResponse(res, 200, 'Password has been reset successfully.')
+})
 
-// export const sendCodeVerifyEmail = async (req, res) => {
-
-//   const existingUser = await User.findById(req.user.id);
-
-//   if (!existingUser) {
-//     throw { statusCode: 404, message: "User not found" };
-//   }
-
-//   if (existingUser.verified) {
-//     return apiResponse(res, "success", "Email already verified", { email: existingUser.email }, 200);
-//   }
-
-//   const code = generateOTP(6);
-
-//   existingUser.verificationCode = code;
-//   existingUser.verificationCodeValidationTime = Date.now() + 10 * 60 * 1000;
-//   await existingUser.save();
-
-
-//   successResponse(res, 200, { email: existingUser.email }, "Verification code saved, email will be sent shortly");
-
-//   const info = await sendMail({
-//     to: existingUser.email,
-//     subject: "Verify your email",
-//     templateName: "verification",
-//     templateData: { name: existingUser.name, code }
-//   });
-
-//   if (!info.accepted.includes(existingUser.email)) {
-//     throw { statusCode: 500, message: "Failed to send verification email" };
-//   }
-
-// };
-
-
-
-
-// export const VerifyCodeEmail = async (req, res) => {
-//   const { code } = req.body;
-
-//   const existingUser = await User.findById(req.user.id).select("+verificationCode +verificationCodeValidationTime");;
-
-
-//   if (!existingUser) {
-//     throw { statusCode: 404, message: "User not found" };
-//   }
-
-//   if (existingUser.verified) {
-//     return apiResponse(res, "success", "Email already verified", { email: existingUser.email }, 200);
-//   }
-
-//   if (!existingUser.verificationCode || !existingUser.verificationCodeValidationTime) {
-//     throw { statusCode: 400, message: "Verification code not generated" };
-//   }
-
-//   if (Date.now() > existingUser.verificationCodeValidationTime) {
-//     throw { statusCode: 400, message: "Verification code expired" };
-//   }
-
-//   if (existingUser.verificationCode !== code.toString()) {
-//     throw { statusCode: 400, message: "Invalid verification code" };
-//   }
-
-//   existingUser.verified = true;
-//   existingUser.verificationCode = null;
-//   existingUser.verificationCodeValidationTime = null;
-//   await existingUser.save();
-
-//   return successResponse(res, 200, { email: existingUser.email }, "Email verified successfully");
-
-// };

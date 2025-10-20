@@ -36,6 +36,9 @@ export const emailTemplates = {
       <p>Hi ${name},</p>
       <p>Click the link below to reset your password:</p>
       <a href="${link}">${link}</a>
+      <p>This link will expire in 10 minutes.</p>
+
     </div>
-  `
+  `,
 };
+

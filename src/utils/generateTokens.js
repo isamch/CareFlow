@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { hmacHash } from './hashing.js';
 
 // ---------------- OTP ----------------
 export const generateOTP = (length = 6, expiresInMinutes = 10) => {
@@ -18,7 +19,7 @@ export const generateOTP = (length = 6, expiresInMinutes = 10) => {
 export const generateCryptoToken = (length = 32, expiresInMinutes = 10) => {
   const token = crypto.randomBytes(length).toString('hex');
 
-  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+  const hashedToken = hmacHash(token);
 
   const expires = new Date(Date.now() + expiresInMinutes * 60 * 1000); // default 15 دقيقة
 

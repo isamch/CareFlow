@@ -1,4 +1,4 @@
-import { createHmac } from 'crypto';
+import { createHmac, createHash } from 'crypto';
 import { hash, compare } from 'bcryptjs';
 
 
@@ -16,5 +16,3 @@ export const comparePassword = async (enteredPassword, hashedPassword) => {
 export const hmacHash = (value) => {
 	return createHmac('sha256', process.env.HMAC_VERIFICATION_CODE_SECRET).update(value).digest('hex');
 };
-
-
