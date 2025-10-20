@@ -1,6 +1,5 @@
 import mongoose from 'mongoose'
 
-// ... (يمكن استيراد workingHourSchema إذا فصلناه في ملف)
 const workingHourSchema = new mongoose.Schema({
   dayOfWeek: {
     type: String,
