@@ -103,10 +103,23 @@ export const getUserById = asyncHandler(async (req, res, next) => {
 
 export const updateUser = asyncHandler(async (req, res, next) => {
   const { id } = req.params // User ID
-  const { fullName, email, status, role } = req.body
+  const updateFields = {}
 
-  const user = await User.findByIdAndUpdate(id, { fullName, email, status, role }, { new: true })
+  // Only update fields that are present in the request body
+  const allowedFields = ['fullName', 'email', 'status', 'role']
+  allowedFields.forEach(field => {
+    if (req.body[field] !== undefined) {
+      updateFields[field] = req.body[field]
+    }
+  })
+
+  if (Object.keys(updateFields).length === 0) {
+    return next(ApiError.badRequest('No valid fields provided for update'))
+  }
+
+  const user = await User.findByIdAndUpdate(id, updateFields, { new: true })
   if (!user) return next(ApiError.notFound('User not found'))
+    
   return successResponse(res, 200, 'User updated', user)
 })
 
@@ -125,6 +138,7 @@ export const updateUserProfile = asyncHandler(async (req, res, next) => {
 
   return successResponse(res, 200, 'Profile updated', profile)
 })
+
 
 
 export const deleteUser = asyncHandler(async (req, res, next) => {
