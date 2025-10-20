@@ -1,17 +1,16 @@
 import mongoose from 'mongoose'
 
-const patientSchema = new mongoose.Schema({
+const secretarySchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
     unique: true
   },
-  patientRecord: {
+  managingDoctors: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'PatientRecord',
-    required: true
-  }
+    ref: 'Doctor'
+  }]
 }, {
   toJSON: {
     transform: (doc, ret) => {
@@ -23,4 +22,4 @@ const patientSchema = new mongoose.Schema({
   }
 })
 
-export default mongoose.model('Patient', patientSchema);
+export default mongoose.model('Secretary', secretarySchema);
