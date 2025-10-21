@@ -29,3 +29,23 @@ export const getPatientRecord = asyncHandler(async (req, res, next) => {
 
   return successResponse(res, 200, 'Patient record retrieved', patient.patientRecord)
 })
+
+
+export const addVisit = asyncHandler(async (req, res, next) => {
+  const { id } = req.params // Patient Profile ID
+  const visitData = req.body
+
+  const patient = await Patient.findById(id)
+  if (!patient) return next(ApiError.notFound('Patient not found'))
+
+  const record = await PatientRecord.findById(patient.patientRecord)
+  if (!record) return next(ApiError.notFound('Patient record not found'))
+
+  visitData.doctorId = req.user.profileId // Doctor's Profile ID from JWT
+
+  record.visits.push(visitData)
+  await record.save()
+
+  const newVisit = record.visits[record.visits.length - 1]
+  return successResponse(res, 201, 'Visit added successfully', newVisit)
+})
