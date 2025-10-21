@@ -56,3 +56,21 @@ export const getDoctorAvailability = asyncHandler(async (req, res, next) => {
 
   return successResponse(res, 200, 'Availability retrieved', { schedule, availableSlots })
 })
+
+
+
+
+export const updateWorkingHours = asyncHandler(async (req, res, next) => {
+  // The Doctor ID comes from the JWT token
+  const doctorId = req.user.profileId 
+  const { workingHours } = req.body
+  
+  const doctor = await Doctor.findByIdAndUpdate(
+    doctorId, 
+    { workingHours },
+    { new: true, runValidators: true }
+  )
+  if (!doctor) return next(ApiError.notFound('Doctor profile not found'))
+  
+  return successResponse(res, 200, "Working hours updated", doctor.workingHours)
+})
