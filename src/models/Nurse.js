@@ -6,9 +6,13 @@ const workingHourSchema = new mongoose.Schema({
     required: true,
     enum: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
   },
-  startTime: { type: String, required: true },
-  endTime: { type: String, required: true },
-  isAvailable: { type: Boolean, default: true }
+  timeSlots: [
+    {
+      startTime: { type: String, required: true }, // 09:00
+      endTime: { type: String, required: true },   // 09:30
+      isAvailable: { type: Boolean, default: true }
+    }
+  ]
 }, { _id: false })
 
 
