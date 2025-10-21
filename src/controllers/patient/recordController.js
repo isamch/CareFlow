@@ -1,41 +1,22 @@
-// import  from "./../models/";
-// import {  } from '../utils/'
+import Patient from './../../models/Patient.js'
+import { successResponse } from './../../utils/apiResponse.js'
+import * as ApiError from './../../utils/ApiError.js'
+import asyncHandler from './../../utils/asyncHandler.js'
 
 
 
-export const getAllpatient/record = (req, res) => {
-
-
-  res.send("Get all patient/record");
-};
-
-
-
-export const getpatient/record = (req, res) => {
-
-
-  res.send(`Get single patient/record with id ${req.params.id}`);
-};
-
-
-
-export const createpatient/record = (req, res) => {
-
+export const getMyRecord = asyncHandler(async (req, res, next) => {
+  // Get Patient Profile ID from the authenticated user's token
+  const patientId = req.user.profileId 
   
-  res.send("Create new patient/record");
-};
+  const patient = await Patient.findById(patientId).populate({
+    path: 'patientRecord',
+    populate: { path: 'visits.doctorId', select: 'specialization' }
+  })
 
+  if (!patient || !patient.patientRecord) {
+    return next(ApiError.notFound('Patient record not found'))
+  }
 
-export const updatepatient/record = (req, res) => {
-
-
-  res.send(`Update patient/record with id ${req.params.id}`);
-};
-
-
-
-export const deletepatient/record = (req, res) => {
-
-
-  res.send(`Delete patient/record with id ${req.params.id}`);
-};
+  return successResponse(res, 200, 'Patient record retrieved', patient.patientRecord)
+})
