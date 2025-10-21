@@ -11,7 +11,7 @@ export const getNurseProfile = asyncHandler(async (req, res, next) => {
     select: 'specialization'
   }).populate({
     path: 'userId',
-    select: 'name email phone'
+    select: 'fullName email status'
   })
 
   if (!nurse) return next(ApiError.notFound('Nurse not found'))
