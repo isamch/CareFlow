@@ -7,66 +7,52 @@ import dayjs from 'dayjs'
 
 
 export const getDoctorAvailability = asyncHandler(async (req, res, next) => {
-  const { id } = req.params // This is the Doctor's Profile ID
+  const { id } = req.params
   const { date } = req.query
 
   const doctor = await Doctor.findById(id)
   if (!doctor) return next(ApiError.notFound('Doctor not found'))
 
-
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
   const dayOfWeek = days[dayjs(date).day()]
-  const schedule = doctor.workingHours.find(h => h.dayOfWeek === dayOfWeek && h.isAvailable)
+  const schedule = doctor.workingHours.find(h => h.dayOfWeek === dayOfWeek)
 
-  if (!schedule) {
-    return successResponse(res, 200, 'Doctor is not available on this day', { date, slots: [] })
+  if (!schedule || !schedule.timeSlots || schedule.timeSlots.length === 0) {
+    return successResponse(res, 200, 'Doctor is not available on this day', { date, availableSlots: [] })
   }
 
-  const dayStartTime = dayjs(`${date}T${schedule.startTime}`)
-  const dayEndTime = dayjs(`${date}T${schedule.endTime}`)
-
+  const dayStart = dayjs(date).startOf('day')
+  const dayEnd = dayjs(date).endOf('day')
 
   const existingAppointments = await Appointment.find({
     doctor: id,
     status: { $ne: 'cancelled' },
-    startTime: { $gte: dayStartTime.toDate(), $lt: dayEndTime.toDate() }
-  }, { startTime: 1 })
+    startTime: { $gte: dayStart.toDate(), $lt: dayEnd.toDate() }
+  }, { startTime: 1, endTime: 1 })
 
+  const bookedSlots = existingAppointments.map(appt => ({
+    start: dayjs(appt.startTime),
+    end: dayjs(appt.endTime)
+  }))
 
-  // (Logic to calculate slots based on schedule vs. appointments)
+  const availableSlots = []
+  schedule.timeSlots.forEach(slot => {
+    if (!slot.isAvailable) return
 
-  const slots = []
-  let slotStart = dayStartTime
+    const slotStart = dayjs(`${date}T${slot.startTime}`)
+    const slotEnd = dayjs(`${date}T${slot.endTime}`)
 
-  existingAppointments.forEach(appt => {
+    const isBooked = bookedSlots.some(b => 
+      slotStart.isBefore(b.end) && slotEnd.isAfter(b.start)
+    )
 
-    const apptStart = dayjs(appt.startTime)
-
-    if (slotStart.isBefore(apptStart)) {
-
-      slots.push({
+    if (!isBooked) {
+      availableSlots.push({
         start: slotStart.toISOString(),
-        end: apptStart.toISOString()
+        end: slotEnd.toISOString()
       })
-
     }
-
-    slotStart = dayjs(appt.endTime)
-
   })
 
-  if (slotStart.isBefore(dayEndTime)) {
-    slots.push({
-      start: slotStart.toISOString(),
-      end: dayEndTime.toISOString()
-    })
-  }
-
-
-  return successResponse(res, 200, 'Availability retrieved', {
-    schedule: { dayOfWeek: schedule.dayOfWeek, startTime: schedule.startTime, endTime: schedule.endTime },
-    existingAppointments,
-    slots
-  })
-
+  return successResponse(res, 200, 'Availability retrieved', { schedule, availableSlots })
 })

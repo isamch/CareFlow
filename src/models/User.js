@@ -1,5 +1,4 @@
 import mongoose from 'mongoose'
-// تم حذف 'crypto' وكل الـ methods
 
 const userSchema = new mongoose.Schema({
   fullName: {
@@ -49,7 +48,7 @@ const userSchema = new mongoose.Schema({
       delete ret._id
       delete ret.__v
       delete ret.password
-      // حذف التوكنز من الإرسال
+      // remove sensitive fields
       delete ret.emailVerificationToken
       delete ret.emailVerificationExpires
       delete ret.passwordResetToken
@@ -59,6 +58,5 @@ const userSchema = new mongoose.Schema({
   }
 })
 
-// --- تم حذف جميع الـ methods من هنا ---
 
 export default mongoose.model('User', userSchema);
