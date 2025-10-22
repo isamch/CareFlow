@@ -1,5 +1,5 @@
 import Doctor from '../../models/Doctor.js'
-import User from '../../models/User.js'
+// import User from '../../models/User.js'
 import Appointment from '../../models/Appointment.js'
 import { successResponse } from '../../utils/apiResponse.js'
 import * as ApiError from '../../utils/ApiError.js'

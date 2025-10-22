@@ -10,6 +10,11 @@ const roleSchema = new mongoose.Schema({
   permissions: {
     type: [String], // ['create:user', 'read:log', 'read:patient_record']
     default: []
+  },
+  status: {
+    type: String,
+    enum: ['active', 'inactive'],
+    default: 'active'
   }
 }, {
   timestamps: true,
