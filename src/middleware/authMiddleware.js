@@ -32,7 +32,11 @@ export const protect = asyncHandler(async (req, res, next) => {
     throw unauthorized('User not found or suspended')
   }
 
-  req.user = user
+  req.user = {
+    ...user.toObject(),
+    profileId: payload.profileId,
+  }
+
   next()
 })
 

@@ -7,7 +7,6 @@ import { successResponse } from './../../utils/apiResponse.js'
 import * as ApiError from './../../utils/ApiError.js'
 import asyncHandler from './../../utils/asyncHandler.js'
 import getPagination from './../../utils/pagination.js'
-import dayjs from 'dayjs'
 
 
 
@@ -57,4 +56,29 @@ export const createAppointment = asyncHandler(async (req, res, next) => {
   })
 
   return successResponse(res, 201, 'Appointment created successfully', appointment)
+})
+
+
+
+export const getAppointments = asyncHandler(async (req, res) => {
+  const { page, perPage, skip } = getPagination(req.query)
+  const { role, profileId } = req.user
+  const query = {}
+
+  if (role === 'Patient') query.patient = profileId
+  else if (role === 'Doctor') query.doctor = profileId
+  else if (role === 'Nurse') query.nurse = profileId
+  else if (role === 'Secretary') {
+    // Logic to show appointments for managed doctors
+  } // Admin sees all
+
+  const appointments = await Appointment.find(query)
+    .populate('doctor')
+    .populate('patient')
+    .limit(perPage)
+    .skip(skip)
+    .sort({ startTime: 1 })
+
+  const total = await Appointment.countDocuments(query)
+  return successResponse(res, 200, 'Appointments retrieved', { total, page, perPage, data: appointments })
 })
