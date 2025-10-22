@@ -4,11 +4,12 @@ import PatientRecord from '../../models/PatientRecord.js'
 import Patient from '../../models/Patient.js'
 import Role from '../../models/Role.js'
 
-import { generateAccessToken, generateRefreshToken, decode } from '../../utils/jwt.js'
+import { sendCookies, clearCookie } from "../../utils/Cookies.js";
+import { generateAccessToken, generateRefreshToken, decode, verifyRefreshToken } from '../../utils/jwt.js'
 import { successResponse } from '../../utils/apiResponse.js'
 import * as ApiError from '../../utils/ApiError.js'
 import asyncHandler from '../../utils/asyncHandler.js'
-import sendMail  from '../../utils/sendMail.js'
+import sendMail from '../../utils/sendMail.js'
 
 import { hashPassword, comparePassword, hmacHash } from '../../utils/hashing.js'
 import { generateCryptoToken } from '../../utils/generateTokens.js'
@@ -38,7 +39,7 @@ export const register = asyncHandler(async (req, res, next) => {
 
   const hashedPassword = await hashPassword(password)
   const { token, hashedToken, expires } = generateCryptoToken()
-  
+
   // 2. Create the user
   const user = await User.create({
     fullName,
@@ -52,7 +53,7 @@ export const register = asyncHandler(async (req, res, next) => {
 
   // 3. Create the profile
   const newPatientRecord = await PatientRecord.create({})
-  await Patient.create({ 
+  await Patient.create({
     patientRecord: newPatientRecord._id,
     userId: user._id
   })
@@ -79,7 +80,7 @@ export const register = asyncHandler(async (req, res, next) => {
 // --- 2. Login (For All Roles) ---
 export const login = asyncHandler(async (req, res, next) => {
   const { email, password } = req.body
-  
+
   // 1. Fetch the user + Fetch the associated Role
   const user = await User.findOne({ email }).select('+password').populate('role')
 
@@ -107,7 +108,7 @@ export const login = asyncHandler(async (req, res, next) => {
   }
 
   // 3. Create the JWT Payload
-  const payload = { 
+  const payload = {
     id: user.id,
     role: roleName,
     profileId: profile ? profile.id : null,
@@ -116,22 +117,92 @@ export const login = asyncHandler(async (req, res, next) => {
   const accessToken = generateAccessToken(payload)
   const refreshToken = generateRefreshToken(payload)
 
+  sendCookies(res, {
+    name: "Authorization",
+    value: accessToken,
+    options: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Strict",
+      maxAge: 15 * 60 * 1000 // 15 minutes
+    }
+  });
+
+  sendCookies(res, {
+    name: "refreshToken",
+    value: refreshToken,
+    options: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    }
+  });
+
   await saveToken(user.id, refreshToken)
   const accessTokenData = decode(accessToken)
 
-  return successResponse(res, 200, 'Login successful', { 
-    accessToken, 
+  return successResponse(res, 200, 'Login successful', {
+    accessToken,
     refreshToken,
     expiresIn: accessTokenData.exp * 1000 - Date.now()
   })
 })
 
+
+// --- 2.a Refresh Token ---
+export const refreshToken = asyncHandler(async (req, res, next) => {
+  const refreshToken = req.cookies.refreshToken;
+  if (!refreshToken) return next(ApiError.unauthorized('No refresh token provided'));
+
+  const existingToken = await Token.findOne({ token: refreshToken });
+  if (!existingToken) return next(ApiError.unauthorized('Invalid refresh token'));
+
+  let payload;
+  try {
+    payload = verifyRefreshToken(refreshToken);
+  } catch {
+    return next(ApiError.unauthorized('Invalid or expired refresh token'));
+  }
+
+  const newAccessToken = generateAccessToken(payload);
+
+  sendCookies(res, {
+    name: "Authorization",
+    value: newAccessToken,
+    options: { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "Strict", maxAge: 15 * 60 * 1000 }
+  });
+
+  return successResponse(res, 200, 'Access token refreshed', { accessToken: newAccessToken });
+});
+
+
+// --- 2.b Logout ---
+export const logout = asyncHandler(async (req, res, next) => {
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return next(ApiError.unauthorized('User not authenticated'));
+  }
+
+  // remove token from database
+  await Token.deleteOne({ userId });
+
+  // remove cookies
+  clearCookie(res, 'Authorization');
+  clearCookie(res, 'refreshToken');
+
+  return successResponse(res, 200, 'Logout successful');
+});
+
+
+
 // --- 3. Verify Email ---
 export const verifyEmail = asyncHandler(async (req, res, next) => {
   const { token } = req.params
-  
+
   const hashedToken = hmacHash(token);
-  
+
 
   const user = await User.findOne({
     emailVerificationToken: hashedToken,
@@ -147,27 +218,44 @@ export const verifyEmail = asyncHandler(async (req, res, next) => {
   return successResponse(res, 200, 'Email verified successfully.')
 })
 
+
+
+
+
 // --- 4. Forgot Password ---
 export const forgotPassword = asyncHandler(async (req, res, next) => {
   const { email } = req.body
   const user = await User.findOne({ email })
   if (!user) return next(ApiError.notFound('User not found'))
-  
+
   const { token, hashedToken, expires } = generateCryptoToken()
   user.passwordResetToken = hashedToken
   user.passwordResetExpires = expires
   await user.save()
 
   // (Send Email Logic)
+  const resetUrl = `${req.protocol}://${req.get('host')}/api/auth/reset-password/${token}`;
+  await sendMail({
+    to: user.email,
+    subject: "Password Reset Request",
+    templateName: "resetPassword",
+    templateData: {
+      name: user.fullName,
+      link: resetUrl
+    }
+  });
+
   console.log(`Password reset token: ${token}`) // For testing
+
   return successResponse(res, 200, 'Password reset token sent to email.')
 })
+
 
 // --- 5. Reset Password ---
 export const resetPassword = asyncHandler(async (req, res, next) => {
   const { token } = req.params
   const { password } = req.body
-  
+
   const hashedToken = hmacHash(token);
 
   const user = await User.findOne({
