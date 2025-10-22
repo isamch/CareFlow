@@ -6,6 +6,9 @@ import asyncHandler from '../../utils/asyncHandler.js'
 import dayjs from 'dayjs'
 
 
+// @desc    Get doctor's availability for a specific date
+// @route   GET /api/doctors/:id/availability?date=YYYY-MM-DD
+// @access  Public
 export const getDoctorAvailability = asyncHandler(async (req, res, next) => {
   const { id } = req.params
   const { date } = req.query
@@ -59,7 +62,9 @@ export const getDoctorAvailability = asyncHandler(async (req, res, next) => {
 
 
 
-
+// @desc    Doctor updates their working hours
+// @route   PUT /api/doctors/me/working-hours
+// @access  Private (Doctor)
 export const updateWorkingHours = asyncHandler(async (req, res, next) => {
   // The Doctor ID comes from the JWT token
   const doctorId = req.user.profileId 
