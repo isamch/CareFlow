@@ -1,6 +1,7 @@
 import mongoose from 'mongoose'
 
 import User from "./../../models/User.js";
+import Role from "./../../models/Role.js";
 import Doctor from './../../models/Doctor.js'
 import Nurse from './../../models/Nurse..js'
 import Secretary from './../../models/Secretary.js'
@@ -16,19 +17,23 @@ import { getPagination } from './../../utils/pagination.js'
 
 
 
+// @desc    Create a new user (Doctor, Nurse, etc.)
 export const createUser = asyncHandler(async (req, res, next) => {
-  const { fullName, email, password, role, profileData } = req.body
-
+  const { fullName, email, password, roleName, profileData } = req.body
+  
   if (await User.findOne({ email })) {
     return next(ApiError.conflict('User with this email already exists'))
   }
+  
+  const role = await Role.findOne({ name: roleName })
+  if (!role) return next(ApiError.badRequest(`Role '${roleName}' not found`))
 
   const userData = {
-    fullName, email, role,
-    isEmailVerified: true,
+    fullName, email,
+    role: role._id,
+    isEmailVerified: true, // Assuming admin-created users are pre-verified
     status: 'active'
   }
-
   if (password) {
     userData.password = await hashPassword(password)
   }
@@ -36,82 +41,92 @@ export const createUser = asyncHandler(async (req, res, next) => {
 
   let profile
   try {
-    switch (role) {
-      case 'Doctor':
-        profile = await Doctor.create({ ...profileData, userId: user._id })
-        break
-      case 'Nurse':
-        profile = await Nurse.create({ ...profileData, userId: user._id })
-        break
-      case 'Secretary':
-        profile = await Secretary.create({ ...profileData, userId: user._id })
-        break
+    const data = { ...profileData, userId: user._id }
+    switch (roleName) {
+      case 'Doctor': profile = await Doctor.create(data); break
+      case 'Nurse': profile = await Nurse.create(data); break
+      case 'Secretary': profile = await Secretary.create(data); break
       case 'Patient':
+        // For patients, create their record and profile
         const record = await PatientRecord.create({})
         profile = await Patient.create({ patientRecord: record._id, userId: user._id })
         break
-      case 'Admin':
-        break // Admin has no profile
-      default:
-        throw new Error('Invalid role specified')
+      case 'Admin': break // Admins might not have a separate profile
+      default: throw new Error('Invalid role specified')
     }
   } catch (err) {
-    await User.findByIdAndDelete(user._id) // Rollback
+    await User.findByIdAndDelete(user._id) // Rollback user creation on profile failure
     return next(ApiError.badRequest(`Failed to create profile: ${err.message}`))
   }
-
-  return successResponse(res, 201, `${role} created successfully`, { user: user.toJSON(), profile })
+  
+  return successResponse(res, 201, `${roleName} created successfully`, { user: user.toJSON(), profile })
 })
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+// @desc    Get all users (with filtering)
 export const getUsers = asyncHandler(async (req, res) => {
-  const { page, perPage, skip } = getPagination(req.query)
-  const { role } = req.query
-
+  const { roleName } = req.query
   const query = {}
-  if (role) query.role = role
-
-  const users = await User.find(query)
-    .limit(perPage)
-    .skip(skip)
-    .sort({ createdAt: -1 })
-
-  const total = await User.countDocuments(query)
-
-  return successResponse(res, 200, 'Users retrieved', {
-    total, page, perPage, data: users
-  })
+  
+  if (roleName) {
+    const role = await Role.findOne({ name: roleName })
+    if (role) query.role = role._id
+  }
+  
+  const users = await User.find(query).populate('role', 'name')
+  return successResponse(res, 200, 'Users retrieved', users)
 })
 
 
 
-
+// @desc    Get a single user with their profile
 export const getUserById = asyncHandler(async (req, res, next) => {
   const { id } = req.params // User ID
-  const user = await User.findById(id)
+  const user = await User.findById(id).populate('role')
   if (!user) return next(ApiError.notFound('User not found'))
-
+  
   let profile = null
-  if (user.role !== 'Admin') {
-    profile = await mongoose.model(user.role).findOne({ userId: user._id })
+  if (user.role.name !== 'Admin') {
+    // Dynamically find the profile based on the role name
+    profile = await mongoose.model(user.role.name).findOne({ userId: user._id })
   }
   return successResponse(res, 200, 'User retrieved', { user, profile })
 })
 
 
 
+
+// @desc    Update basic user data
 export const updateUser = asyncHandler(async (req, res, next) => {
-  const { id } = req.params // User ID
+  const { id } = req.params
   const updateFields = {}
 
   // Only update fields that are present in the request body
-  const allowedFields = ['fullName', 'email', 'status', 'role']
+  const allowedFields = ['fullName', 'email', 'status']
   allowedFields.forEach(field => {
     if (req.body[field] !== undefined) {
       updateFields[field] = req.body[field]
     }
   })
+
+  // Handle role update if roleName is provided
+  if (req.body.roleName) {
+    const role = await Role.findOne({ name: req.body.roleName })
+    if (!role) return next(ApiError.badRequest('Role not found'))
+    updateFields.role = role._id
+  }
 
   if (Object.keys(updateFields).length === 0) {
     return next(ApiError.badRequest('No valid fields provided for update'))
@@ -119,34 +134,30 @@ export const updateUser = asyncHandler(async (req, res, next) => {
 
   const user = await User.findByIdAndUpdate(id, updateFields, { new: true })
   if (!user) return next(ApiError.notFound('User not found'))
-    
   return successResponse(res, 200, 'User updated', user)
 })
 
 
 
+// @desc    Update user profile (e.g., doctor's specialization)
 export const updateUserProfile = asyncHandler(async (req, res, next) => {
   const { id } = req.params // User ID
   const profileData = req.body
+  const user = await User.findById(id).populate('role')
+  if (!user || user.role.name === 'Admin') return next(ApiError.notFound('User or profile not found'))
 
-  const user = await User.findById(id)
-  if (!user || user.role === 'Admin') return next(ApiError.notFound('User or profile not found'))
-
-  const ProfileModel = mongoose.model(user.role)
+  const ProfileModel = mongoose.model(user.role.name)
   const profile = await ProfileModel.findOneAndUpdate({ userId: id }, profileData, { new: true })
   if (!profile) return next(ApiError.notFound('Profile not found'))
-
   return successResponse(res, 200, 'Profile updated', profile)
 })
 
 
-
+// @desc    Delete (suspend) a user
 export const deleteUser = asyncHandler(async (req, res, next) => {
   const { id } = req.params
-  const user = await User.findById(id)
+  // This is a soft delete by changing status
+  const user = await User.findByIdAndUpdate(id, { status: 'suspended' })
   if (!user) return next(ApiError.notFound('User not found'))
-  
-  user.status = 'suspended' // Soft delete
-  await user.save()
-  return successResponse(res, 204, 'User suspended')
+  return successResponse(res, 204, 'User suspended') // 204 No Content is common for deletes
 })
