@@ -1,4 +1,4 @@
-import { createHmac, createHash } from 'crypto';
+import { createHmac } from 'crypto';
 import { hash, compare } from 'bcryptjs';
 
 
