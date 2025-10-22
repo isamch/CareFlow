@@ -8,11 +8,11 @@ import { generateAccessToken, generateRefreshToken, decode } from '../../utils/j
 import { successResponse } from '../../utils/apiResponse.js'
 import * as ApiError from '../../utils/ApiError.js'
 import asyncHandler from '../../utils/asyncHandler.js'
+import sendMail  from '../../utils/sendMail.js'
 
 import { hashPassword, comparePassword, hmacHash } from '../../utils/hashing.js'
 import { generateCryptoToken } from '../../utils/generateTokens.js'
 
-import crypto from 'crypto'
 import mongoose from 'mongoose'
 
 // --- Helpers (Token Logic) ---
@@ -58,11 +58,23 @@ export const register = asyncHandler(async (req, res, next) => {
   })
 
   // (Send Email Logic)
-  // const verificationUrl = ...
+  const verificationUrl = `${req.protocol}://${req.get('host')}/api/auth/verify-email/${token}`;
+  await sendMail({
+    to: user.email,
+    subject: "Verify your email",
+    templateName: "verification",
+    templateData: {
+      name: user.fullName,
+      link: verificationUrl
+    }
+  });
+
   console.log(`Email verification token: ${token}`) // For testing
 
   return successResponse(res, 201, 'Registration successful. Please check your email.', { userId: user.id })
 })
+
+
 
 // --- 2. Login (For All Roles) ---
 export const login = asyncHandler(async (req, res, next) => {
