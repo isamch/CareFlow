@@ -3,8 +3,7 @@ import mongoose from 'mongoose'
 const userSchema = new mongoose.Schema({
   fullName: {
     type: String,
-    required: true,
-    trim: true
+    required: true, trim: true
   },
   email: {
     type: String,
@@ -19,9 +18,9 @@ const userSchema = new mongoose.Schema({
     minlength: 8,
     select: false
   },
-  role: {
-    type: String,
-    enum: ['Patient', 'Doctor', 'Nurse', 'Secretary', 'Admin'],
+  role: { // Reference to Role model
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Role',
     required: true
   },
   status: {
@@ -29,8 +28,6 @@ const userSchema = new mongoose.Schema({
     enum: ['active', 'suspended', 'pending_verification'],
     default: 'pending_verification'
   },
-
-  // email verify and password reset
   isEmailVerified: {
     type: Boolean,
     default: false
@@ -38,25 +35,18 @@ const userSchema = new mongoose.Schema({
   emailVerificationToken: String,
   emailVerificationExpires: Date,
   passwordResetToken: String,
-  passwordResetExpires: Date,
-
+  passwordResetExpires: Date
 }, {
   timestamps: true,
-    toJSON: {
+  toJSON: {
     transform: (doc, ret) => {
       ret.id = ret._id.toString()
-      delete ret._id
-      delete ret.__v
-      delete ret.password
-      // remove sensitive fields
-      delete ret.emailVerificationToken
-      delete ret.emailVerificationExpires
-      delete ret.passwordResetToken
-      delete ret.passwordResetExpires
+      delete ret._id; delete ret.__v; delete ret.password
+      delete ret.emailVerificationToken; delete ret.emailVerificationExpires
+      delete ret.passwordResetToken; delete ret.passwordResetExpires
       return ret
     }
   }
 })
-
 
 export default mongoose.model('User', userSchema);
