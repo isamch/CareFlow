@@ -16,7 +16,7 @@ const errorHandler = (err, req, res, next) => {
       message: e.message
     }))
   }
-  
+
   if (err instanceof mongoose.Error.ValidationError) {
     statusCode = 400
     message = 'Validation Error'
