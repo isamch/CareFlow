@@ -151,7 +151,7 @@ export const login = asyncHandler(async (req, res, next) => {
 
 
 // --- 2.a Refresh Token ---
-export const refreshToken = asyncHandler(async (req, res, next) => {
+export const refresh = asyncHandler(async (req, res, next) => {
   const refreshToken = req.cookies.refreshToken;
   if (!refreshToken) return next(ApiError.unauthorized('No refresh token provided'));
 
