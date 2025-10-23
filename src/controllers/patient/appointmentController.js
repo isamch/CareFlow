@@ -73,7 +73,7 @@ export const getMyAppointments = asyncHandler(async (req, res) => {
       path: 'doctor',          // first populate of Doctor
       populate: {
         path: 'userId',        // populate the User inside Doctor
-        select: 'name email'   // choose fields to return
+        select: 'fullName'   // choose fields to return
       }
     })
     .sort({ startTime: 1 })
