@@ -66,17 +66,11 @@ export const createUser = asyncHandler(async (req, res, next) => {
 
 
 
-
-
-
-
-
-
-
-
 // @desc    Get all users (with filtering and pagination)
+// @route   GET /api/users
+// @access  Public
 export const getUsers = asyncHandler(async (req, res) => {
-  const { roleName, page, limit } = req.query
+  const { roleName } = req.query
   const query = {}
 
   if (roleName) {
@@ -84,7 +78,10 @@ export const getUsers = asyncHandler(async (req, res) => {
     if (role) query.role = role._id
   }
 
-  const { skip, perPage } = getPagination(page, limit)
+  // get pagination parameters
+  const { page, perPage, skip } = getPagination(req.query)
+
+  // get users with pagination
   const [users, total] = await Promise.all([
     User.find(query)
       .populate('role', 'name')
@@ -96,10 +93,11 @@ export const getUsers = asyncHandler(async (req, res) => {
   return successResponse(res, 200, 'Users retrieved', {
     users,
     total,
-    page: Number(page) || 1,
+    page,
     limit: perPage
   })
 })
+
 
 
 // @desc    Get a single user with their profile
