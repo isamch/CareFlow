@@ -74,21 +74,32 @@ export const createUser = asyncHandler(async (req, res, next) => {
 
 
 
-
-// @desc    Get all users (with filtering)
+// @desc    Get all users (with filtering and pagination)
 export const getUsers = asyncHandler(async (req, res) => {
-  const { roleName } = req.query
+  const { roleName, page, limit } = req.query
   const query = {}
-  
+
   if (roleName) {
     const role = await Role.findOne({ name: roleName })
     if (role) query.role = role._id
   }
-  
-  const users = await User.find(query).populate('role', 'name')
-  return successResponse(res, 200, 'Users retrieved', users)
-})
 
+  const { skip, perPage } = getPagination(page, limit)
+  const [users, total] = await Promise.all([
+    User.find(query)
+      .populate('role', 'name')
+      .skip(skip)
+      .limit(perPage),
+    User.countDocuments(query)
+  ])
+
+  return successResponse(res, 200, 'Users retrieved', {
+    users,
+    total,
+    page: Number(page) || 1,
+    limit: perPage
+  })
+})
 
 
 // @desc    Get a single user with their profile
