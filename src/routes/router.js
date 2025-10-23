@@ -1,19 +1,8 @@
 import express from 'express'
+import apiRoutes from './api.js'
 
-const router = express.Router();
+const router = express.Router()
 
+router.use('/api/v1', apiRoutes)
 
-
-
-router.get('/', (req, res)=>{
-  return res.json({
-    message: 'welcome home'
-  });
-});
-
-
-
-
-
-
-export default router;
+export default router
