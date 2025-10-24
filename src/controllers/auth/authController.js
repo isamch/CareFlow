@@ -9,7 +9,7 @@ import { generateAccessToken, generateRefreshToken, decode, verifyRefreshToken }
 import { successResponse } from '../../utils/apiResponse.js'
 import * as ApiError from '../../utils/ApiError.js'
 import asyncHandler from '../../utils/asyncHandler.js'
-import sendMail from '../../utils/sendMail.js'
+import { sendMail} from '../../utils/email.js'
 
 import { hashPassword, comparePassword, hmacHash } from '../../utils/hashing.js'
 import { generateCryptoToken } from '../../utils/generateTokens.js'

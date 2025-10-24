@@ -1,11 +1,10 @@
-import User from '../../models/Userser.js'
+import User from '../../models/User.js'
 import Role from '../../models/Role.js'
 import Patient from '../../models/Patient.js'
 import PatientRecord from '../../models/PatientRecord.js'
 import { successResponse } from '../../utils/apiResponse.js'
 import * as ApiError from '../../utils/ApiError.js'
 import asyncHandler from '../../utils/asyncHandler.js'
-import getPagination from '../../utils/pagination.js'
 
 
 

@@ -1,7 +1,7 @@
 import Notification from './../../models/Notification.js'
 import { successResponse } from './../../utils/apiResponse.js'
 import asyncHandler from './../../utils/asyncHandler.js'
-import getPagination from './../../utils/pagination.js'
+import { getPagination } from './../../utils/pagination.js'
 
 
 

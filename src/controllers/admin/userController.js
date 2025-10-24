@@ -3,10 +3,10 @@ import mongoose from 'mongoose'
 import User from "./../../models/User.js";
 import Role from "./../../models/Role.js";
 import Doctor from './../../models/Doctor.js'
-import Nurse from './../../models/Nurse..js'
+import Nurse from './../../models/Nurse.js'
 import Secretary from './../../models/Secretary.js'
 import Patient from './../../models/Patient.js'
-import PatientRecord from './../models/PatientRecord.js'
+import PatientRecord from './../../models/PatientRecord.js'
 
 
 import { successResponse } from './../../utils/apiResponse.js'

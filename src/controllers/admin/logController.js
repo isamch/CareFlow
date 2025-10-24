@@ -1,7 +1,7 @@
 import Log from './../../models/Log.js'
 import { successResponse } from './../../utils/apiResponse.js'
 import asyncHandler from './../../utils/asyncHandler.js'
-import getPagination from './../../utils/pagination.js'
+import { getPagination } from './../../utils/pagination.js'
 
 export const getLogs = asyncHandler(async (req, res) => {
   const { page, perPage, skip } = getPagination(req.query)
