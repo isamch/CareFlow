@@ -7,6 +7,8 @@ import nurseRoutes from './api/nurse.routes.js'
 import patientRoutes from './api/patient.routes.js'
 import secretaryRoutes from './api/secretary.routes.js'
 import userRoutes from './api/user.routes.js' // Shared user routes like /me
+import { callPharmacyApi } from '../utils/pharmacyApi.js';
+import doctorPrescriptionRoutes from './api/doctor.prescription.routes.js';
 
 const router = express.Router()
 
@@ -17,9 +19,19 @@ router.use('/home', homeRoutes)
 // Protected Routes (Specific roles/permissions checked within each file)
 router.use('/admin', adminRoutes)
 router.use('/doctor', doctorRoutes)
+router.use('/doctor', doctorPrescriptionRoutes)
 router.use('/nurse', nurseRoutes)
 router.use('/patient', patientRoutes)
 router.use('/secretary', secretaryRoutes)
 router.use('/user', userRoutes) // Shared authenticated user routes
+
+router.get('/pharmacy/prescriptions', async (req, res, next) => {
+  try {
+    const prescriptions = await callPharmacyApi('/prescriptions', 'GET');
+    res.json(prescriptions);
+  } catch (err) {
+    next(err);
+  }
+});
 
 export default router
