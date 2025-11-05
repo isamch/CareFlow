@@ -6,13 +6,15 @@ import mongoose from 'mongoose'
 
 export const getSelf = asyncHandler(async (req, res, next) => {
   const userId = req.user.id
-  const user = await User.findById(userId)
+  const user = await User.findById(userId).populate('role')
   if (!user) return next(ApiError.notFound('User not found'))
-  
+
   let profile = null
-  if (user.role !== 'Admin') {
-    profile = await mongoose.model(user.role).findOne({ userId: user._id })
+  const roleName = user.role?.name
+  if (roleName && roleName !== 'Admin') {
+    const ProfileModel = mongoose.model(roleName)
+    profile = await ProfileModel.findOne({ userId: user._id })
   }
-  
+
   return successResponse(res, 200, 'Profile retrieved', { user, profile })
 })

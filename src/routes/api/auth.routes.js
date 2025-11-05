@@ -10,7 +10,7 @@ router.post('/login', validate(authValidation.login), authController.login)
 router.get('/verify-email/:token', validate(authValidation.verifyEmail), authController.verifyEmail)
 router.post('/forgot-password', validate(authValidation.forgotPassword), authController.forgotPassword)
 router.post('/reset-password/:token', validate(authValidation.resetPassword), authController.resetPassword)
-router.post('/refresh', validate(authValidation.refresh), authController.refresh) // Add if needed
-router.post('/logout', validate(authValidation.refresh), authController.logout) // Add if needed
+router.post('/refresh', validate(authValidation.refresh), authController.refresh)
+router.post('/logout', authController.logout)
 
 export default router

@@ -6,14 +6,14 @@ const objectId = Joi.string().hex().length(24)
 export const register = {
   body: Joi.object().keys({
     fullName: Joi.string().required(),
-    email: Joi.string().email().required(),
+    email: Joi.string().email({ tlds: { allow: false } }).required(),
     password: Joi.string().min(8).required()
   })
 }
 
 export const login = {
   body: Joi.object().keys({
-    email: Joi.string().email().required(),
+    email: Joi.string().email({ tlds: { allow: false } }).required(),
     password: Joi.string().required()
   })
 }
@@ -26,7 +26,7 @@ export const verifyEmail = {
 
 export const forgotPassword = {
   body: Joi.object().keys({
-    email: Joi.string().email().required()
+    email: Joi.string().email({ tlds: { allow: false } }).required()
   })
 }
 

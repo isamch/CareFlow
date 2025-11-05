@@ -5,7 +5,7 @@ const objectId = Joi.string().hex().length(24)
 export const createPatient = {
   body: Joi.object().keys({
     fullName: Joi.string().required(),
-    email: Joi.string().email().required(),
+    email: Joi.string().email({ tlds: { allow: false } }).required(),
     dateOfBirth: Joi.date().iso(),
     bloodType: Joi.string().valid('A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'),
     address: Joi.string()

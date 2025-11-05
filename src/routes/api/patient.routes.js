@@ -14,7 +14,9 @@ router.use(protect, checkRole('Patient'))
 
 // --- Appointments ---
 router.post('/appointments', authorize('create:appointment'), validate(appointmentValidation.createMyAppointment), apptController.createMyAppointment)
+
 router.get('/appointments', authorize('read:appointment'), apptController.getMyAppointments)
+router.get('/appointments/available', authorize('read:appointment'), validate(appointmentValidation.getAvailableSlots), apptController.getAvailableSlots)
 
 // Use PATCH for cancelling
 router.patch('/appointments/:id/cancel', authorize('update:appointment'), validate(appointmentValidation.appointmentIdParam), apptController.cancelMyAppointment)

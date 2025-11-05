@@ -42,7 +42,7 @@ const secretaryProfileSchema = Joi.object({
 export const createUser = {
   body: Joi.object().keys({
     fullName: Joi.string().required(),
-    email: Joi.string().email().required(),
+    email: Joi.string().email({ tlds: { allow: false } }).required(),
     password: Joi.string().min(8).optional(),
     roleName: Joi.string().valid('Doctor', 'Nurse', 'Secretary', 'Patient', 'Admin').required(),
     profileData: Joi.when('roleName', {
@@ -76,7 +76,7 @@ export const updateUser = {
   }),
   body: Joi.object().keys({
     fullName: Joi.string(),
-    email: Joi.string().email(),
+    email: Joi.string().email({ tlds: { allow: false } }),
     status: Joi.string().valid('active', 'suspended', 'pending_verification'),
     // Role update requires careful consideration, often better done via a separate process
     roleName: Joi.string().valid('Doctor', 'Nurse', 'Secretary', 'Patient', 'Admin')

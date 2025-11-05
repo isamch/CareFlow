@@ -35,6 +35,14 @@ export const getAppointments = {
   })
 }
 
+// Validation for patient fetching available slots by doctor and date
+export const getAvailableSlots = {
+  query: Joi.object().keys({
+    doctorId: objectId.required(),
+    date: Joi.date().iso().required()
+  })
+}
+
 // Validation for getting or cancelling appointment by ID
 export const appointmentIdParam = {
   params: Joi.object().keys({

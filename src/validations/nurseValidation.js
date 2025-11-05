@@ -12,7 +12,7 @@ export const updateMyProfile = {
   body: Joi.object().keys({
     shift: Joi.string().valid('day', 'night', 'rotating'),
     fullName: Joi.string().min(3).max(100),
-    email: Joi.string().email()
+    email: Joi.string().email({ tlds: { allow: false } })
   }).min(1)
 }
 

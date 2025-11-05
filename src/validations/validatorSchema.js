@@ -18,7 +18,7 @@ export const registerSchema = Joi.object({
   //   }),
     
   // username: Joi.string().alphanum().min(3).max(20).required(),
-  email: Joi.string().email().required(),
+  email: Joi.string().email({ tlds: { allow: false } }).required(),
   password: Joi.string().min(6).required(),
   // confirmPassword: Joi.string().valid(Joi.ref('password')).required(),
   // age: Joi.number().integer().min(18).max(100),
@@ -31,7 +31,7 @@ export const registerSchema = Joi.object({
  * ✅ Login validation
  */
 export const loginSchema = Joi.object({
-  email: Joi.string().email().required(),
+  email: Joi.string().email({ tlds: { allow: false } }).required(),
   password: Joi.string().min(6).required(),
 });
 
@@ -39,7 +39,7 @@ export const loginSchema = Joi.object({
  * ✅ Email validation (مثلاً نسيت كلمة السر)
  */
 export const emailSchema = Joi.object({
-  email: Joi.string().email().required(),
+  email: Joi.string().email({ tlds: { allow: false } }).required(),
 });
 
 /**
@@ -57,7 +57,7 @@ export const passwordSchema = Joi.object({
 export const updateProfileSchema = Joi.object({
   name: Joi.string().min(3).max(30),
   username: Joi.string().alphanum().min(3).max(20),
-  email: Joi.string().email(),
+  email: Joi.string().email({ tlds: { allow: false } }),
   password: Joi.string().min(6),
   age: Joi.number().integer().min(18).max(100),
   phone: Joi.string().pattern(/^[0-9]{10,15}$/),

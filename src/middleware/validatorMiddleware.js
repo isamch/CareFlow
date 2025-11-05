@@ -25,9 +25,9 @@ export default (schema) => (req, res, next) => {
     abortEarly: false, // Return all validation errors
     allowUnknown: true, // Allow properties not defined in schema (for safety)
     stripUnknown: { // Remove unknown properties from validated output
-        body: true,
-        params: true,
-        query: true
+      body: true,
+      params: true,
+      query: true
     }
   })
 
@@ -37,11 +37,33 @@ export default (schema) => (req, res, next) => {
     return next(error)
   }
 
-  // Overwrite request parts with validated (and potentially sanitized/stripped) values
-  // This is important for security and consistency
-  if (value.body !== undefined) req.body = value.body
-  if (value.params !== undefined) req.params = value.params
-  if (value.query !== undefined) req.query = value.query
+  // --- 🛑 FIX APPLIED HERE 🛑 ---
+  // Instead of assigning, we clear and merge properties.
+  // This avoids the "Cannot set property query" error on read-only objects like req.query.
+
+  // 1. **Handle req.body** (usually reassignable, but safer to merge if not)
+  if (value.body !== undefined) {
+    // Clear existing keys
+    Object.keys(req.body).forEach(key => delete req.body[key])
+    // Merge new/validated keys
+    Object.assign(req.body, value.body)
+  }
+
+  // 2. **Handle req.params** (usually reassignable, but safer to merge if not)
+  if (value.params !== undefined) {
+    // Clear existing keys
+    Object.keys(req.params).forEach(key => delete req.params[key])
+    Object.assign(req.params, value.params)
+  }
+
+  // 3. **Handle req.query** (The problematic one: cannot be reassigned)
+  if (value.query !== undefined) {
+    // Clear existing keys from the read-only object
+    Object.keys(req.query).forEach(key => delete req.query[key])
+    // Merge new/validated keys into the existing read-only object
+    Object.assign(req.query, value.query)
+  }
+  // --- 🛑 END OF FIX 🛑 ---
 
   next() // Proceed to the next middleware or controller
 }

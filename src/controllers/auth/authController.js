@@ -9,7 +9,7 @@ import { generateAccessToken, generateRefreshToken, decode, verifyRefreshToken }
 import { successResponse } from '../../utils/apiResponse.js'
 import * as ApiError from '../../utils/ApiError.js'
 import asyncHandler from '../../utils/asyncHandler.js'
-import { sendMail} from '../../utils/email.js'
+// import { sendMail} from '../../utils/email.js'
 
 import { hashPassword, comparePassword, hmacHash } from '../../utils/hashing.js'
 import { generateCryptoToken } from '../../utils/generateTokens.js'
@@ -46,6 +46,7 @@ export const register = asyncHandler(async (req, res, next) => {
     email,
     password: hashedPassword,
     role: patientRole._id, // <-- Use the role ID
+    isEmailVerified: true,
     status: 'pending_verification',
     emailVerificationToken: hashedToken,
     emailVerificationExpires: expires
@@ -60,15 +61,15 @@ export const register = asyncHandler(async (req, res, next) => {
 
   // (Send Email Logic)
   const verificationUrl = `${req.protocol}://${req.get('host')}/api/auth/verify-email/${token}`;
-  await sendMail({
-    to: user.email,
-    subject: "Verify your email",
-    templateName: "verification",
-    templateData: {
-      name: user.fullName,
-      link: verificationUrl
-    }
-  });
+  // await sendMail({
+  //   to: user.email,
+  //   subject: "Verify your email",
+  //   templateName: "verification",
+  //   templateData: {
+  //     name: user.fullName,
+  //     link: verificationUrl
+  //   }
+  // });
 
   console.log(`Email verification token: ${token}`) // For testing
 
@@ -179,16 +180,15 @@ export const refresh = asyncHandler(async (req, res, next) => {
 
 // --- 2.b Logout ---
 export const logout = asyncHandler(async (req, res, next) => {
-  const userId = req.user?.id;
-
-  if (!userId) {
-    return next(ApiError.unauthorized('User not authenticated'));
+  // Prefer removing by refresh token cookie if available
+  const refreshTokenCookie = req.cookies?.refreshToken;
+  if (refreshTokenCookie) {
+    await Token.deleteOne({ token: refreshTokenCookie }).catch(() => {});
+  } else if (req.user?.id) {
+    await Token.deleteOne({ userId: req.user.id }).catch(() => {});
   }
 
-  // remove token from database
-  await Token.deleteOne({ userId });
-
-  // remove cookies
+  // Always clear cookies regardless of auth state
   clearCookie(res, 'Authorization');
   clearCookie(res, 'refreshToken');
 
@@ -235,15 +235,15 @@ export const forgotPassword = asyncHandler(async (req, res, next) => {
 
   // (Send Email Logic)
   const resetUrl = `${req.protocol}://${req.get('host')}/api/auth/reset-password/${token}`;
-  await sendMail({
-    to: user.email,
-    subject: "Password Reset Request",
-    templateName: "resetPassword",
-    templateData: {
-      name: user.fullName,
-      link: resetUrl
-    }
-  });
+  // await sendMail({
+  //   to: user.email,
+  //   subject: "Password Reset Request",
+  //   templateName: "resetPassword",
+  //   templateData: {
+  //     name: user.fullName,
+  //     link: resetUrl
+  //   }
+  // });
 
   console.log(`Password reset token: ${token}`) // For testing
 

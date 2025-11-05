@@ -27,16 +27,36 @@ const isReset = process.argv.includes('--reset') || process.argv.includes('-r')
 
 const randomItem = (arr) => arr[Math.floor(Math.random() * arr.length)]
 
-const generateName = () => {
-  if (faker) return faker.name.findName()
-  const first = ['Ali', 'Omar', 'Youssef', 'Sara', 'Khadija', 'Amina', 'Salma', 'Rania']
-  const last = ['El Fassi', 'El Amrani', 'Benali', 'Chakir', 'Haddad', 'Zahraoui']
-  return `${randomItem(first)} ${randomItem(last)}`
-}
-
-const generateEmail = (name, domain = 'careflow.local') => {
-  const slug = name.toLowerCase().replace(/[^a-z]+/g, '.')
-  return `${slug}.${Math.floor(Math.random() * 10000)}@${domain}`
+// ---------------- Seed Configuration (deterministic) ----------------
+const SEED_CONFIG = {
+  roles: ['Admin', 'Doctor', 'Nurse', 'Secretary', 'Patient'],
+  credentials: {
+    Admin: [{ fullName: 'System Admin', email: 'admin@careflow.local', password: 'admin123' }],
+    Doctor: [
+      { fullName: 'Dr. Amina El Fassi', email: 'doctor1@careflow.local', password: 'Staff123!', specialization: 'Cardiology' },
+      { fullName: 'Dr. Youssef Benali', email: 'doctor2@careflow.local', password: 'Staff123!', specialization: 'Dermatology' },
+      { fullName: 'Dr. Sara Chakir', email: 'doctor3@careflow.local', password: 'Staff123!', specialization: 'Neurology' },
+      { fullName: 'Dr. Omar Haddad', email: 'doctor4@careflow.local', password: 'Staff123!', specialization: 'Pediatrics' }
+    ],
+    Nurse: [
+      { fullName: 'Nurse Salma Rania', email: 'nurse1@careflow.local', password: 'Staff123!', shift: 'day' },
+      { fullName: 'Nurse Khadija Zahraoui', email: 'nurse2@careflow.local', password: 'Staff123!', shift: 'night' },
+      { fullName: 'Nurse Ali El Amrani', email: 'nurse3@careflow.local', password: 'Staff123!', shift: 'rotating' },
+      { fullName: 'Nurse Rania El Fassi', email: 'nurse4@careflow.local', password: 'Staff123!', shift: 'day' }
+    ],
+    Secretary: [
+      { fullName: 'Secretary Amina Benali', email: 'secretary1@careflow.local', password: 'Staff123!' },
+      { fullName: 'Secretary Youssef Haddad', email: 'secretary2@careflow.local', password: 'Staff123!' }
+    ],
+    Patient: Array.from({ length: 12 }).map((_, i) => ({
+      fullName: `Patient ${i + 1}`,
+      email: `patient${i + 1}@careflow.local`,
+      password: 'Patient123!',
+      address: `Street ${i + 1}, Care City`,
+      bloodType: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'][i % 8],
+      dateOfBirth: new Date(1990, (i % 12), 1 + (i % 28))
+    }))
+  }
 }
 
 const generateSpecialization = () => {
@@ -61,12 +81,53 @@ const createWorkingHours = () => {
 }
 
 async function upsertRoles() {
-  const roleNames = ['admin', 'doctor', 'nurse', 'secretary', 'patient']
+  const permissionsByRole = {
+    Admin: [
+      'access:admin_panel',
+      'manage:roles',
+      'create:user',
+      'read:user',
+      'update:user',
+      'delete:user',
+      'read:log',
+      'create:notification'
+    ],
+    Doctor: [
+      'update:own_profile',
+      'read:own_appointments',
+      'update:appointment',
+      'read:patient_record',
+      'create:visit'
+    ],
+    Nurse: [
+      'update:own_profile',
+      'read:own_appointments',
+      'read:patient_record',
+      'create:visit'
+    ],
+    Secretary: [
+      'update:own_profile',
+      'create:patient',
+      'read:patient',
+      'create:appointment',
+      'read:appointment',
+      'update:appointment'
+    ],
+    Patient: [
+      'create:appointment',
+      'read:appointment',
+      'update:appointment',
+      'read:own_record',
+      'read:own_notifications'
+    ]
+  }
+
+  const roleNames = Object.keys(permissionsByRole)
   const roleDocs = {}
   for (const name of roleNames) {
     const doc = await Role.findOneAndUpdate(
       { name },
-      { $setOnInsert: { name, status: 'active' } },
+      { $set: { name, status: 'active', permissions: permissionsByRole[name] } },
       { upsert: true, new: true }
     )
     roleDocs[name] = doc
@@ -90,45 +151,44 @@ async function createUser(fullName, email, roleId, { passwordPlain = 'Password12
 }
 
 async function createAdmin(roleAdmin) {
-  const fullName = 'System Admin'
-  const email = 'admin@careflow.local'
-  const admin = await createUser(fullName, email, roleAdmin._id, { passwordPlain: 'admin123', verified: true, status: 'active' })
+  const creds = SEED_CONFIG.credentials.Admin[0]
+  const admin = await createUser(creds.fullName, creds.email, roleAdmin._id, { passwordPlain: creds.password, verified: true, status: 'active' })
   return admin
 }
 
-async function createDoctors(roleDoctor, count = 3) {
+async function createDoctors(roleDoctor) {
   const doctors = []
-  for (let i = 0; i < count; i++) {
-    const name = generateName()
-    const email = generateEmail(name)
-    const user = await createUser(name, email, roleDoctor._id, {})
-    const doc = new Doctor({ userId: user._id, specialization: generateSpecialization(), workingHours: createWorkingHours() })
+  for (const creds of SEED_CONFIG.credentials.Doctor) {
+    const user = await createUser(creds.fullName, creds.email, roleDoctor._id, { passwordPlain: creds.password })
+    const doc = new Doctor({
+      userId: user._id,
+      specialization: creds.specialization || generateSpecialization(),
+      workingHours: createWorkingHours()
+    })
     await doc.save()
     doctors.push({ user, doc })
   }
   return doctors
 }
 
-async function createNurses(roleNurse, doctors, count = 3) {
+async function createNurses(roleNurse, doctors) {
   const nurses = []
-  for (let i = 0; i < count; i++) {
-    const name = generateName()
-    const email = generateEmail(name)
-    const user = await createUser(name, email, roleNurse._id, {})
+  let i = 0
+  for (const creds of SEED_CONFIG.credentials.Nurse) {
+    const user = await createUser(creds.fullName, creds.email, roleNurse._id, { passwordPlain: creds.password })
     const assigned = doctors[i % doctors.length].doc
-    const nurse = new Nurse({ userId: user._id, assignedDoctor: assigned._id })
+    const nurse = new Nurse({ userId: user._id, assignedDoctor: assigned._id, shift: creds.shift })
     await nurse.save()
     nurses.push({ user, nurse })
+    i++
   }
   return nurses
 }
 
-async function createSecretaries(roleSecretary, doctors, count = 2) {
+async function createSecretaries(roleSecretary, doctors) {
   const secretaries = []
-  for (let i = 0; i < count; i++) {
-    const name = generateName()
-    const email = generateEmail(name)
-    const user = await createUser(name, email, roleSecretary._id, {})
+  for (const creds of SEED_CONFIG.credentials.Secretary) {
+    const user = await createUser(creds.fullName, creds.email, roleSecretary._id, { passwordPlain: creds.password })
     const manages = doctors.map((d) => d.doc._id).slice(0, Math.max(1, Math.floor(doctors.length / 2)))
     const sec = new Secretary({ userId: user._id, managingDoctors: manages })
     await sec.save()
@@ -137,17 +197,15 @@ async function createSecretaries(roleSecretary, doctors, count = 2) {
   return secretaries
 }
 
-async function createPatients(rolePatient, doctors, nurses, count = 10) {
+async function createPatients(rolePatient, doctors, nurses) {
   const patients = []
-  for (let i = 0; i < count; i++) {
-    const name = generateName()
-    const email = generateEmail(name)
-    const user = await createUser(name, email, rolePatient._id, {})
+  for (const creds of SEED_CONFIG.credentials.Patient) {
+    const user = await createUser(creds.fullName, creds.email, rolePatient._id, { passwordPlain: creds.password })
 
     const record = new PatientRecord({
-      bloodType: generateBloodType(),
-      dateOfBirth: new Date(1980 + Math.floor(Math.random() * 25), Math.floor(Math.random() * 12), Math.floor(1 + Math.random() * 28)),
-      address: 'Test Address',
+      bloodType: creds.bloodType || generateBloodType(),
+      dateOfBirth: creds.dateOfBirth || new Date(1985 + Math.floor(Math.random() * 20), Math.floor(Math.random() * 12), Math.floor(1 + Math.random() * 28)),
+      address: creds.address || 'Test Address',
       visits: []
     })
     await record.save()
@@ -201,14 +259,22 @@ async function main() {
     if (isReset) await resetCollections()
 
     const roles = await upsertRoles()
-    await createAdmin(roles.admin)
-    const doctors = await createDoctors(roles.doctor, 4)
-    const nurses = await createNurses(roles.nurse, doctors, 4)
-    await createSecretaries(roles.secretary, doctors, 2)
-    const patients = await createPatients(roles.patient, doctors, nurses, 12)
+    await createAdmin(roles.Admin)
+    const doctors = await createDoctors(roles.Doctor)
+    const nurses = await createNurses(roles.Nurse, doctors)
+    await createSecretaries(roles.Secretary, doctors)
+    const patients = await createPatients(roles.Patient, doctors, nurses)
     await createAppointments(patients, doctors, nurses, 20)
 
-    console.log('Seeding completed successfully.')
+    const summary = {
+      Admin: SEED_CONFIG.credentials.Admin.map(({ email, password }) => ({ email, password })),
+      Doctor: SEED_CONFIG.credentials.Doctor.map(({ email, password }) => ({ email, password })),
+      Nurse: SEED_CONFIG.credentials.Nurse.map(({ email, password }) => ({ email, password })),
+      Secretary: SEED_CONFIG.credentials.Secretary.map(({ email, password }) => ({ email, password })),
+      Patient: SEED_CONFIG.credentials.Patient.map(({ email, password }) => ({ email, password }))
+    }
+    console.log('Seeding completed successfully. Login credentials:')
+    console.table(summary)
   } catch (err) {
     console.error('Seeding failed:', err)
     process.exitCode = 1

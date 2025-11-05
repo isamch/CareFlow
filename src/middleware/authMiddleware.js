@@ -9,8 +9,9 @@ import asyncHandler from '../utils/asyncHandler.js'
 export const protect = asyncHandler(async (req, res, next) => {
   let token
 
-  if (req.cookies && req.cookies.token) {
-    token = req.cookies.token
+  // Cookie set during login is named 'Authorization'
+  if (req.cookies && req.cookies.Authorization) {
+    token = req.cookies.Authorization
   }
 
   const authHeader = req.headers.authorization
@@ -19,8 +20,8 @@ export const protect = asyncHandler(async (req, res, next) => {
   }
 
   // Fallback to cookie if not found in header
-  if (!token && req.cookies && req.cookies.token) {
-    token = req.cookies.token
+  if (!token && req.cookies && req.cookies.Authorization) {
+    token = req.cookies.Authorization
   }
 
   if (!token) throw unauthorized('Not authorized, no token')
