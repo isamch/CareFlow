@@ -7,7 +7,7 @@ import validate from '../../middleware/validatorMiddleware.js'
 import * as doctorValidation from '../../validations/doctorValidation.js'
 import * as patientRecordValidation from '../../validations/patientRecordValidation.js'
 import * as appointmentValidation from '../../validations/appointmentValidation.js' // For status update
-import doctorPrescriptionRoutes from './doctor.prescription.routes.js';
+// import doctorPrescriptionRoutes from './doctor.prescription.routes.js';
 
 const router = express.Router()
 
@@ -29,6 +29,6 @@ router.get('/patients/:patientId/record', authorize('read:patient_record'), vali
 // Add Visit (using Patient Profile ID)
 router.post('/patients/:patientId/visits', authorize('create:visit'), validate(patientRecordValidation.patientIdParam), validate(patientRecordValidation.addVisitPayload), patientController.addVisit)
 
-router.use(doctorPrescriptionRoutes);
+// router.use(doctorPrescriptionRoutes);
 
 export default router

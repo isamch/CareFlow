@@ -39,9 +39,9 @@ export default (schema) => (req, res, next) => {
 
   // Overwrite request parts with validated (and potentially sanitized/stripped) values
   // This is important for security and consistency
-  req.body = value.body
-  req.params = value.params
-  req.query = value.query
+  if (value.body !== undefined) req.body = value.body
+  if (value.params !== undefined) req.params = value.params
+  if (value.query !== undefined) req.query = value.query
 
   next() // Proceed to the next middleware or controller
 }

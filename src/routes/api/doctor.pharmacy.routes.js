@@ -3,7 +3,7 @@ import {
   searchMedicationsInPharmacy,
   sendPrescriptionToPharmacyController,
   getAvailableMedications
-} from '../controllers/doctor/simplePharmacy.controller.js';
+} from '../../controllers/doctor/simplePharmacy.controller.js';
 
 const router = express.Router();
 

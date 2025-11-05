@@ -11,14 +11,14 @@ import doctorPharmacyRoutes from './api/doctor.pharmacy.routes.js';
 
 const router = express.Router()
 
-// Public Routes
+// // Public Routes
 router.use('/auth', authRoutes)
 router.use('/home', homeRoutes)
 
-// Protected Routes
+// // Protected Routes
 router.use('/admin', adminRoutes)
 router.use('/doctor', doctorRoutes)
-router.use('/doctor', doctorPharmacyRoutes) // Pharmacy integration routes
+// router.use('/doctor', doctorPharmacyRoutes) // Pharmacy integration routes
 router.use('/nurse', nurseRoutes)
 router.use('/patient', patientRoutes)
 router.use('/secretary', secretaryRoutes)
