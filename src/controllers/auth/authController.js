@@ -154,10 +154,13 @@ export const login = asyncHandler(async (req, res, next) => {
 // --- 2.a Refresh Token ---
 export const refresh = asyncHandler(async (req, res, next) => {
   const refreshToken = req.cookies.refreshToken;
+
+
   if (!refreshToken) return next(ApiError.unauthorized('No refresh token provided'));
 
   const existingToken = await Token.findOne({ token: refreshToken });
   if (!existingToken) return next(ApiError.unauthorized('Invalid refresh token'));
+
 
   let payload;
   try {
@@ -165,8 +168,9 @@ export const refresh = asyncHandler(async (req, res, next) => {
   } catch {
     return next(ApiError.unauthorized('Invalid or expired refresh token'));
   }
+  const { exp, iat, ...restPayload } = payload;
 
-  const newAccessToken = generateAccessToken(payload);
+  const newAccessToken = generateAccessToken(restPayload);
 
   sendCookies(res, {
     name: "Authorization",
@@ -176,6 +180,7 @@ export const refresh = asyncHandler(async (req, res, next) => {
 
   return successResponse(res, 200, 'Access token refreshed', { accessToken: newAccessToken });
 });
+
 
 
 // --- 2.b Logout ---
