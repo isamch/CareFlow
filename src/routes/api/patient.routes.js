@@ -1,6 +1,6 @@
 import express from 'express'
 import * as apptController from '../../controllers/patient/appointmentController.js'
-import * as recordController from '../../controllers/shared/patientRecord.js' // Shared
+import * as recordController from '../../controllers/patient/recordController.js'
 import * as notificationController from '../../controllers/shared/NotificationController.js' // Shared
 import { protect, authorize, checkRole } from '../../middleware/authMiddleware.js'
 import validate from '../../middleware/validatorMiddleware.js'
@@ -23,7 +23,7 @@ router.patch('/appointments/:id/cancel', authorize('update:appointment'), valida
 
 // --- Record ---
 // No ID needed in param, gets own record via JWT profileId
-router.get('/record/me', authorize('read:own_record'), recordController.getPatientRecord)
+router.get('/record/me', authorize('read:own_record'), recordController.getMyRecord)
 
 // --- Notifications ---
 // No ID needed in param, gets own notifications via JWT userId
