@@ -24,6 +24,7 @@ if (process.env.NODE_ENV === 'development') {
 // Main Router
 app.use(mainRouter)
 
+
 // 404 Handler
 app.use((req, res, next) => {
   next(createError.NotFound('The route you requested does not exist.'))

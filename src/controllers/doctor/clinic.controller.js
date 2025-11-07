@@ -10,14 +10,14 @@ export const sendTestToLabController = async (req, res) => {
 
     const labResponse = await sendTestToLab({ patientId, doctorId, testType });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Test sent to lab successfully",
       clinicTest: test,
       labResponse: labResponse
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    return res.status(500).json({ success: false, message: err.message });
   }
 };
 
@@ -32,9 +32,9 @@ export const receiveLabResult = async (req, res) => {
       { new: true, upsert: true }
     );
 
-    res.json({ success: true, data: test });
+    return res.json({ success: true, data: test });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    return res.status(500).json({ success: false, message: err.message });
   }
 };
 
@@ -42,8 +42,8 @@ export const receiveLabResult = async (req, res) => {
 export const getClinicTests = async (req, res) => {
   try {
     const tests = await ClinicTest.find();
-    res.json({ success: true, data: tests });
+    return res.json({ success: true, data: tests });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    return res.status(500).json({ success: false, message: err.message });
   }
 };

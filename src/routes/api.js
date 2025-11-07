@@ -19,9 +19,12 @@ router.use('/home', homeRoutes)
 
 // // Protected Routes
 router.use('/admin', adminRoutes)
-router.use('/doctor', doctorRoutes)
+
 router.use('/doctor', doctorPharmacyRoutes)
 router.use('/doctor/laboratory', doctorLaboratoryRoutes)
+
+router.use('/doctor', doctorRoutes)
+
 router.use('/pharmacy', pharmacyRoutes) // Pharmacy integration routes
 router.use('/nurse', nurseRoutes)
 router.use('/patient', patientRoutes)
