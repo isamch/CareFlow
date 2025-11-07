@@ -8,9 +8,7 @@ const PHARMACY_API_URL = process.env.PHARMACY_API_URL || 'http://localhost:5001/
  */
 export async function searchMedications(searchTerm = '') {
   try {
-    const response = await axios.get(`${PHARMACY_API_URL}/medications`, {
-      params: { search: searchTerm }
-    });
+    const response = await axios.get(`${PHARMACY_API_URL}/medications`);
     return response.data;
   } catch (error) {
     console.error('Error searching medications:', error.message);
@@ -26,6 +24,10 @@ export async function sendPrescriptionToPharmacy(prescriptionData) {
     const response = await axios.post(`${PHARMACY_API_URL}/prescriptions`, prescriptionData);
     return response.data;
   } catch (error) {
+    if (error.response && error.response.data) {
+      throw new Error(error.response.data.message || 'Pharmacy service error');
+    }
+
     console.error('Error sending prescription:', error.message);
     throw new Error('Failed to send prescription to pharmacy');
   }

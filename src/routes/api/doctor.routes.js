@@ -1,7 +1,7 @@
 import express from 'express'
 import * as profileController from '../../controllers/doctor/profileController.js'
 import * as apptController from '../../controllers/doctor/appointmentController.js'
-import * as patientController from '../../controllers/shared/patientRecord.js' // Shared
+import * as patientController from '../../controllers/doctor/patientController.js'
 import { protect, authorize, checkRole } from '../../middleware/authMiddleware.js'
 import validate from '../../middleware/validatorMiddleware.js'
 import * as doctorValidation from '../../validations/doctorValidation.js'
@@ -25,9 +25,17 @@ router.patch('/appointments/:id/status', authorize('update:appointment'), valida
 
 // --- Patient Records & Visits ---
 // Get Patient Record (using Patient Profile ID)
-router.get('/patients/:patientId/record', authorize('read:patient_record'), validate(patientRecordValidation.patientIdParam), patientController.getPatientRecord)
+router.get('/patients/:patientId/record',
+  authorize('read:patient_record'),
+  validate(patientRecordValidation.patientIdParam),
+  patientController.getPatientRecord)
+
 // Add Visit (using Patient Profile ID)
-router.post('/patients/:patientId/visits', authorize('create:visit'), validate(patientRecordValidation.patientIdParam), validate(patientRecordValidation.addVisitPayload), patientController.addVisit)
+router.post('/patients/:patientId/visits',
+  authorize('create:visit'),
+  validate(patientRecordValidation.patientIdParam),
+  // validate(patientRecordValidation.addVisitPayload),
+  patientController.addVisit)
 
 // router.use(doctorPrescriptionRoutes);
 

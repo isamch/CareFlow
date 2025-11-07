@@ -8,6 +8,7 @@ import asyncHandler from '../../utils/asyncHandler.js'
 // @desc    Doctor gets a patient's record
 export const getPatientRecord = asyncHandler(async (req, res, next) => {
   const { patientId } = req.params // This is Patient Profile ID
+
   const patient = await Patient.findById(patientId).populate('patientRecord')
   if (!patient || !patient.patientRecord) {
     return next(ApiError.notFound('Patient record not found'))
@@ -24,6 +25,8 @@ export const addVisit = asyncHandler(async (req, res, next) => {
   const doctorId = req.user.profileId // Doctor's Profile ID
 
   const patient = await Patient.findById(patientId)
+
+
   if (!patient) return next(ApiError.notFound('Patient not found'))
 
   const record = await PatientRecord.findById(patient.patientRecord)

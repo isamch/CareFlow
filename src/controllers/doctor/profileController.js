@@ -6,10 +6,13 @@ import asyncHandler from '../../utils/asyncHandler.js'
 // @desc    Get my (doctor) profile
 export const getMyProfile = asyncHandler(async (req, res, next) => {
   const profileId = req.user.profileId // From the token (JWT)
+
   const profile = await Doctor.findById(profileId)
     .populate('assignedNurse')
     .populate('userId', 'fullName email');
+
   if (!profile) return next(ApiError.notFound('Doctor profile not found'))
+
   return successResponse(res, 200, 'Profile retrieved', profile)
 })
 
