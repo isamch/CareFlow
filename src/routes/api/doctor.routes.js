@@ -33,8 +33,7 @@ router.get('/patients/:patientId/record',
 // Add Visit (using Patient Profile ID)
 router.post('/patients/:patientId/visits',
   authorize('create:visit'),
-  validate(patientRecordValidation.patientIdParam),
-  // validate(patientRecordValidation.addVisitPayload),
+  validate(patientRecordValidation.addVisitPayload),
   patientController.addVisit)
 
 // router.use(doctorPrescriptionRoutes);

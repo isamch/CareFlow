@@ -10,6 +10,9 @@ export const patientIdParam = {
 
 // Validation for the payload when adding a visit
 export const addVisitPayload = {
+    params: Joi.object().keys({
+    patientId: objectId.required() // Patient Profile ID
+  }),
   body: Joi.object().keys({
     date: Joi.date().iso().optional(),
     diagnosis: Joi.array().items(Joi.string()).optional(),
@@ -27,3 +30,4 @@ export const addVisitPayload = {
     nurseId: objectId.optional()
   })
 }
+
