@@ -1,6 +1,36 @@
 // Simple doctor controller for pharmacy integration
 import { searchMedications, sendPrescriptionToPharmacy } from '../../utils/simplePharmacyApi.js';
 import asyncHandler from '../../utils/asyncHandler.js';
+import Prescription from '../../models/Prescription.js';
+import { getPagination } from '../../utils/pagination.js';
+
+
+/**
+ * Get all prescriptions for the doctor
+ * GET /api/doctor/prescriptions
+ */
+export const getPrescriptions = asyncHandler(async (req, res) => {
+  const { page, perPage, skip } = getPagination(req.query);
+  const prescriptions = await Prescription.find({ doctor: req.user._id })
+    .skip(skip)
+    .limit(perPage)
+    .sort({ createdAt: -1 });
+
+  const total = await Prescription.countDocuments({ doctor: req.user._id });
+
+  res.json({
+    success: true,
+    message: 'Prescriptions fetched successfully',
+    data: prescriptions,
+    pagination: {
+      page,
+      perPage,
+      total,
+      totalPages: Math.ceil(total / perPage)
+    }
+  });
+});
+
 
 /**
  * Search medications in pharmacy
@@ -8,7 +38,7 @@ import asyncHandler from '../../utils/asyncHandler.js';
  */
 export const searchMedicationsInPharmacy = asyncHandler(async (req, res) => {
   const { search } = req.query;
-  
+
   try {
     const medications = await searchMedications(search);
     res.json({
@@ -71,7 +101,9 @@ export const sendPrescriptionToPharmacyController = asyncHandler(async (req, res
     };
 
     const result = await sendPrescriptionToPharmacy(prescriptionData);
-    
+
+    const localResult = await Prescription.create(prescriptionData);
+
     res.json({
       success: true,
       message: 'Prescription sent to pharmacy successfully',

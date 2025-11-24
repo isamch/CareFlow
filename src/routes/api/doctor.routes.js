@@ -7,7 +7,7 @@ import validate from '../../middleware/validatorMiddleware.js'
 import * as doctorValidation from '../../validations/doctorValidation.js'
 import * as patientRecordValidation from '../../validations/patientRecordValidation.js'
 import * as appointmentValidation from '../../validations/appointmentValidation.js' // For status update
-// import doctorPrescriptionRoutes from './doctor.prescription.routes.js';
+import doctorPrescriptionRoutes from './doctor.prescription.routes.js';
 
 const router = express.Router()
 
@@ -36,6 +36,6 @@ router.post('/patients/:patientId/visits',
   validate(patientRecordValidation.addVisitPayload),
   patientController.addVisit)
 
-// router.use(doctorPrescriptionRoutes);
+router.use(doctorPrescriptionRoutes);
 
 export default router
